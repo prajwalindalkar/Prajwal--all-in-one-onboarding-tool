@@ -1,0 +1,16 @@
+{
+  "name": "merchant-tool-v2",
+  "version": "2.0.0",
+  "description": "PhonePe Merchant Onboarding Tool v2 - Sole Proprietor, Partnership, Private Limited",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "docx": "^9.6.1",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

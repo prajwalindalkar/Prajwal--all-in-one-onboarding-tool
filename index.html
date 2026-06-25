@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhonePe Merchant Onboarding Tool</title>
+<style>
+  :root {
+    --purple: #5B2D8E;
+    --purple-light: #f3eefb;
+    --purple-mid: #d4b8f0;
+    --green: #1a8a4a;
+    --red: #c0392b;
+    --gray: #f7f7f7;
+    --border: #ddd;
+    --text: #222;
+    --muted: #666;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0ebf8; color: var(--text); min-height: 100vh; }
+
+  /* Top bar */
+  #topbar {
+    background: var(--purple);
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  #topbar .logo { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+  #agent-display { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  #agent-display span { opacity: 0.85; }
+  #agent-display button {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  #agent-display button:hover { background: rgba(255,255,255,0.3); }
+
+  /* Progress bar */
+  #progress-bar {
+    background: white;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .step-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    border: 2px solid var(--border);
+    background: white;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .step-dot.active { background: var(--purple); border-color: var(--purple); color: white; }
+  .step-dot.done { background: var(--green); border-color: var(--green); color: white; }
+  .step-label { color: var(--muted); }
+  .step-label.active { color: var(--purple); font-weight: 600; }
+  .step-arrow { color: var(--border); }
+
+  /* Main container */
+  .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+  /* Card */
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(91,45,142,0.10);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--purple);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--purple);
+    margin: 20px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--purple-mid);
+  }
+
+  /* Form elements */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 5px;
+  }
+  .field label .req { color: var(--red); }
+  .field label .hint {
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--muted);
+    display: block;
+    margin-top: 2px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border 0.2s;
+    background: white;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--purple);
+  }
+  .field input.error, .field select.error { border-color: var(--red); }
+  .field .err-msg { color: var(--red); font-size: 11px; margin-top: 3px; display: none; }
+  .field.has-error .err-msg { display: block; }
+  .field.has-error input, .field.has-error select { border-color: var(--red); }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
+
+  /* Radio/checkbox group */
+  .radio-group, .check-group {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;
+  }
+  .radio-group label, .check-group label {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 400;
+    transition: all 0.15s;
+    margin: 0;
+  }
+  .radio-group input[type=radio], .check-group input[type=checkbox] { display: none; }
+  .radio-group label:has(input:checked), .check-group label:has(input:checked) {
+    background: var(--purple-light);
+    border-color: var(--purple);
+    color: var(--purple);
+    font-weight: 600;
+  }
+
+  /* Merchant type cards */
+  .merchant-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .merchant-cards { grid-template-columns: 1fr; } }
+  .merchant-card {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .merchant-card:hover { border-color: var(--purple-mid); background: var(--purple-light); }
+  .merchant-card.selected { border-color: var(--purple); background: var(--purple-light); }
+  .merchant-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .merchant-card .name { font-size: 13px; font-weight: 700; color: var(--purple); }
+  .merchant-card .docs { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Partner cards */
+  .partner-card {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: var(--gray);
+  }
+  .partner-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+  }
+  .partner-card-title { font-weight: 700; color: var(--purple); font-size: 14px; }
+  .btn-remove {
+    background: none; border: none;
+    color: var(--red); font-size: 20px; cursor: pointer; padding: 0 4px;
+  }
+  .share-total {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .share-total.ok { background: #e8f8f0; color: var(--green); }
+  .share-total.bad { background: #fdf0ef; color: var(--red); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--purple); color: white; }
+  .btn-primary:hover { background: #4a2270; }
+  .btn-secondary { background: white; color: var(--purple); border: 2px solid var(--purple); }
+  .btn-secondary:hover { background: var(--purple-light); }
+  .btn-success { background: var(--green); color: white; }
+  .btn-success:hover { background: #146a38; }
+  .btn-add {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 16px;
+    border: 2px dashed var(--purple-mid);
+    border-radius: 8px;
+    background: var(--purple-light);
+    color: var(--purple);
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+  }
+  .btn-add:hover { border-color: var(--purple); }
+  .nav-buttons {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 24px; gap: 12px;
+  }
+
+  /* Info box */
+  .info-box {
+    background: var(--purple-light);
+    border: 1px solid var(--purple-mid);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #4a2270;
+    margin-bottom: 14px;
+  }
+  .info-box strong { display: block; margin-bottom: 4px; }
+  .warn-box {
+    background: #fff8e1;
+    border: 1px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #7a5500;
+    margin-bottom: 14px;
+  }
+  .err-box {
+    background: #fdf0ef;
+    border: 1px solid #f4a49e;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--red);
+    margin-bottom: 14px;
+    display: none;
+  }
+
+  /* Auth signatory selector */
+  .auth-selector { margin-top: 10px; }
+  .auth-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .auth-option input[type=radio] { display: none; }
+  .auth-option:has(input:checked) {
+    background: var(--purple-light);
+    border-color: var(--purple);
+    color: var(--purple);
+    font-weight: 600;
+  }
+  .auth-badge {
+    display: inline-block;
+    background: var(--purple);
+    color: white;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: 8px;
+  }
+
+  /* Present partners checkboxes */
+  .present-partner-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .present-partner-item input[type=checkbox] { display: none; }
+  .present-partner-item:has(input:checked) {
+    background: var(--purple-light);
+    border-color: var(--purple);
+  }
+  .present-partner-item .pname { font-weight: 600; }
+  .present-partner-item .pshare { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+  /* Review section */
+  .review-section { margin-bottom: 20px; }
+  .review-row {
+    display: flex; gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+  }
+  .review-row .rl { color: var(--muted); width: 45%; flex-shrink: 0; }
+  .review-row .rv { font-weight: 600; color: var(--text); }
+  .download-card {
+    border: 2px solid var(--green);
+    border-radius: 10px;
+    padding: 16px;
+    background: #f0fbf5;
+    margin-bottom: 12px;
+  }
+  .download-card .doc-name { font-weight: 700; color: var(--green); font-size: 15px; margin-bottom: 6px; }
+  .download-card .doc-desc { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+  /* GSTIN/TAN toggle */
+  .has-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .toggle-switch {
+    position: relative; display: inline-block; width: 40px; height: 22px;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #ccc; border-radius: 22px;
+    transition: 0.3s;
+  }
+  .toggle-slider:before {
+    position: absolute; content: "";
+    height: 16px; width: 16px;
+    left: 3px; bottom: 3px;
+    background: white; border-radius: 50%;
+    transition: 0.3s;
+  }
+  input:checked + .toggle-slider { background: var(--purple); }
+  input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+  /* Aadhaar prefix */
+  .aadhaar-input { display: flex; align-items: center; gap: 6px; }
+  .aadhaar-prefix {
+    background: #eee; border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; font-size: 14px; color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Loading */
+  .loading {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; color: var(--muted);
+  }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--purple-mid);
+    border-top-color: var(--purple);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Hidden */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo">📱 PhonePe Onboarding</div>
+  <div id="agent-display" class="hidden">
+    <span id="agent-name-display"></span>
+    <button onclick="editAgent()">✏️ Edit</button>
+  </div>
+</div>
+
+<div id="progress-bar"></div>
+
+<div class="container" id="app-container"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────
+let agent = null;
+let merchantType = null;
+let currentStep = 0;
+let formData = {};
+
+const SHEETS_URL = ''; // Fill in your Google Apps Script URL
+
+// ─── localStorage ─────────────────────────────────────────────────────────
+function saveAgent(a) { localStorage.setItem('pe_agent_v2', JSON.stringify(a)); agent = a; }
+function loadAgent() { try { return JSON.parse(localStorage.getItem('pe_agent_v2')); } catch { return null; } }
+function saveMerchant(d) { localStorage.setItem('pe_merchant_v2', JSON.stringify(d)); }
+function loadMerchant() { try { return JSON.parse(localStorage.getItem('pe_merchant_v2')); } catch { return null; } }
+function clearMerchant() { localStorage.removeItem('pe_merchant_v2'); }
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+function init() {
+  agent = loadAgent();
+  const saved = loadMerchant();
+  if (saved) {
+    formData = saved.formData || {};
+    merchantType = saved.merchantType || null;
+  }
+  if (agent) {
+    showAgentBar();
+    renderStep(merchantType ? 1 : 0);
+  } else {
+    renderStep(-1); // Agent setup
+  }
+}
+
+function showAgentBar() {
+  document.getElementById('agent-display').classList.remove('hidden');
+  document.getElementById('agent-name-display').textContent = `👤 ${agent.name} | ${agent.cm}`;
+}
+
+function editAgent() {
+  if (!confirm('Edit your agent info?')) return;
+  renderStep(-1);
+}
+
+// ─── Steps config ──────────────────────────────────────────────────────────
+function getSteps() {
+  if (merchantType === 'proprietor') return [
+    { id: 'type', label: 'Merchant Type' },
+    { id: 'business', label: 'Business Info' },
+    { id: 'as', label: 'Signatory Details' },
+    { id: 'letterhead', label: 'Letterhead' },
+    { id: 'review', label: 'Review & Download' }
+  ];
+  if (merchantType === 'partnership') return [
+    { id: 'type', label: 'Merchant Type' },
+    { id: 'business', label: 'Firm Info' },
+    { id: 'partners', label: 'Partners' },
+    { id: 'resolution', label: 'Resolution' },
+    { id: 'bo', label: 'BO Declaration' },
+    { id: 'letterhead', label: 'Letterhead' },
+    { id: 'review', label: 'Review & Download' }
+  ];
+  if (merchantType === 'company') return [
+    { id: 'type', label: 'Merchant Type' },
+    { id: 'business', label: 'Company Info' },
+    { id: 'directors', label: 'Directors / BO' },
+    { id: 'company-bo', label: 'BO Declaration' },
+    { id: 'letterhead', label: 'Letterhead' },
+    { id: 'review', label: 'Review & Download' }
+  ];
+  return [{ id: 'type', label: 'Merchant Type' }];
+}
+
+function renderProgress() {
+  const bar = document.getElementById('progress-bar');
+  if (currentStep < 0) { bar.innerHTML = ''; return; }
+  const steps = getSteps();
+  bar.innerHTML = steps.map((s, i) => {
+    const cls = i < currentStep ? 'done' : i === currentStep ? 'active' : '';
+    const lbl = i < currentStep ? '✓' : i + 1;
+    return `
+      ${i > 0 ? '<span class="step-arrow">›</span>' : ''}
+      <div class="step-indicator">
+        <div class="step-dot ${cls}">${lbl}</div>
+        <span class="step-label ${i === currentStep ? 'active' : ''}">${s.label}</span>
+      </div>`;
+  }).join('');
+}
+
+function renderStep(step) {
+  currentStep = step;
+  renderProgress();
+  const cont = document.getElementById('app-container');
+  if (step === -1) { cont.innerHTML = renderAgentSetup(); return; }
+  const steps = getSteps();
+  if (step === 0) { cont.innerHTML = renderMerchantType(); return; }
+  const sid = steps[step]?.id;
+  if (!sid) return;
+  const renders = {
+    business: renderBusinessInfo,
+    partners: renderPartners,
+    resolution: renderResolution,
+    bo: renderBODeclaration,
+    directors: renderDirectors,
+    'company-bo': renderCompanyBO,
+    letterhead: renderLetterhead,
+    as: renderASDetails,
+    review: renderReview
+  };
+  cont.innerHTML = (renders[sid] || (() => '<div class="card">Coming soon</div>'))();
+  // post-render bindings
+  if (sid === 'partners') bindPartners();
+  if (sid === 'resolution') bindResolution();
+  if (sid === 'directors') bindDirectors();
+  if (sid === 'company-bo') bindCompanyBO();
+}
+
+// ─── Validation helpers ───────────────────────────────────────────────────
+function validatePAN(v) { return /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v.toUpperCase()); }
+function validatePhone(v) { return /^[6-9]\d{9}$/.test(v); }
+function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+function fieldErr(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  const wrap = el.closest('.field');
+  if (wrap) {
+    wrap.classList.add('has-error');
+    const em = wrap.querySelector('.err-msg');
+    if (em) em.textContent = msg;
+  }
+  el.focus();
+  return true;
+}
+function clearErr(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const wrap = el.closest('.field');
+  if (wrap) wrap.classList.remove('has-error');
+}
+function val(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; }
+function selVal(id) { const e = document.getElementById(id); return e ? e.value : ''; }
+function radioVal(name) { const e = document.querySelector(`input[name="${name}"]:checked`); return e ? e.value : ''; }
+function checkboxVal(id) { const e = document.getElementById(id); return e ? e.checked : false; }
+
+// ─── Step -1: Agent Setup ─────────────────────────────────────────────────
+function renderAgentSetup() {
+  const a = agent || {};
+  return `
+  <div class="card">
+    <div class="card-title">👤 Agent Setup</div>
+    <div class="card-subtitle">This info is saved permanently and won't be asked again</div>
+    <div class="info-box"><strong>One-time setup</strong>After saving, your name will appear at the top of every session.</div>
+    <div class="field"><label>Your Name <span class="req">*</span></label>
+      <input id="ag-name" placeholder="e.g. Prajwal Indalkar" value="${a.name||''}" />
+      <div class="err-msg">Required</div></div>
+    <div class="field"><label>Your Phone <span class="req">*</span></label>
+      <input id="ag-phone" placeholder="10-digit mobile" maxlength="10" value="${a.phone||''}" />
+      <div class="err-msg">Enter valid 10-digit number</div></div>
+    <div class="field"><label>CM / Manager Name <span class="req">*</span></label>
+      <input id="ag-cm" placeholder="e.g. Saurav Raj" value="${a.cm||''}" />
+      <div class="err-msg">Required</div></div>
+    <div class="field"><label>State <span class="req">*</span></label>
+      <input id="ag-state" placeholder="e.g. Chhattisgarh" value="${a.state||''}" />
+      <div class="err-msg">Required</div></div>
+    <div class="field"><label>Google Sheets URL (optional)<span class="hint">For usage logging</span></label>
+      <input id="ag-sheets" placeholder="https://script.google.com/..." value="${a.sheetsUrl||''}" /></div>
+    <div class="nav-buttons">
+      <div></div>
+      <button class="btn btn-primary" onclick="saveAgentStep()">Save & Continue →</button>
+    </div>
+  </div>`;
+}
+
+function saveAgentStep() {
+  let ok = true;
+  if (!val('ag-name')) { fieldErr('ag-name', 'Required'); ok = false; }
+  if (!validatePhone(val('ag-phone'))) { fieldErr('ag-phone', 'Enter valid 10-digit number'); ok = false; }
+  if (!val('ag-cm')) { fieldErr('ag-cm', 'Required'); ok = false; }
+  if (!val('ag-state')) { fieldErr('ag-state', 'Required'); ok = false; }
+  if (!ok) return;
+  saveAgent({ name: val('ag-name'), phone: val('ag-phone'), cm: val('ag-cm'), state: val('ag-state'), sheetsUrl: val('ag-sheets') });
+  showAgentBar();
+  renderStep(0);
+}
+
+// ─── Step 0: Merchant Type ─────────────────────────────────────────────────
+function renderMerchantType() {
+  return `
+  <div class="card">
+    <div class="card-title">🏪 Select Merchant Type</div>
+    <div class="card-subtitle">Choose the type of business entity to generate the correct documents</div>
+    <div class="merchant-cards">
+      <div class="merchant-card ${merchantType==='proprietor'?'selected':''}" onclick="selectType('proprietor')">
+        <div class="icon">👤</div>
+        <div class="name">Sole Proprietor</div>
+        <div class="docs">MDF only</div>
+      </div>
+      <div class="merchant-card ${merchantType==='partnership'?'selected':''}" onclick="selectType('partnership')">
+        <div class="icon">🤝</div>
+        <div class="name">Partnership Firm</div>
+        <div class="docs">Partner Resolution + BO Declaration</div>
+      </div>
+      <div class="merchant-card ${merchantType==='company'?'selected':''}" onclick="selectType('company')">
+        <div class="icon">🏢</div>
+        <div class="name">Private Limited</div>
+        <div class="docs">BO Declaration (Company)</div>
+      </div>
+    </div>
+    <div id="type-err" class="err-box" style="display:none;margin-top:12px;">Please select a merchant type</div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="clearMerchantStart()">🗑 Clear / New Merchant</button>
+      <button class="btn btn-primary" onclick="confirmType()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function selectType(t) {
+  merchantType = t;
+  document.querySelectorAll('.merchant-card').forEach(c => c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  formData = {}; // reset when type changes
+}
+
+function confirmType() {
+  if (!merchantType) { document.getElementById('type-err').style.display='block'; return; }
+  currentStep = 1;
+  renderStep(1);
+}
+
+function clearMerchantStart() {
+  if (!confirm('Clear current merchant data and start fresh?')) return;
+  clearMerchant();
+  formData = {};
+  merchantType = null;
+  renderStep(0);
+}
+
+// ─── Step: Business Info (shared base, varies by type) ───────────────────
+function renderBusinessInfo() {
+  const b = formData.business || {};
+  const isPartnership = merchantType === 'partnership';
+  const isCompany = merchantType === 'company';
+  const isProprietor = merchantType === 'proprietor';
+
+  let entityTypeOptions = '';
+  if (isProprietor) {
+    entityTypeOptions = `<option value="Individual/Sole Proprietorship" ${b.entityType==='Individual/Sole Proprietorship'?'selected':''}>Individual / Sole Proprietorship</option>`;
+  } else if (isPartnership) {
+    entityTypeOptions = `
+      <option value="Registered Partnership Firm" ${b.entityType==='Registered Partnership Firm'?'selected':''}>Registered Partnership Firm</option>
+      <option value="Un-Registered Partnership Firm" ${b.entityType==='Un-Registered Partnership Firm'?'selected':''}>Un-Registered Partnership Firm</option>`;
+  } else {
+    entityTypeOptions = `<option value="Company" selected>Company (Private Limited)</option>`;
+  }
+
+  return `
+  <div class="card">
+    <div class="card-title">${isPartnership?'🤝 Firm Info':isCompany?'🏢 Company Info':'👤 Business Info'}</div>
+    <div class="card-subtitle">Enter the business/firm details as they appear on official documents</div>
+
+    <div class="field"><label>${isPartnership?'Partnership Firm Name':'Business / Company Name'} <span class="req">*</span>
+      <span class="hint">Must match name on Business PAN Card</span></label>
+      <input id="b-name" placeholder="${isPartnership?'e.g. XYZ Hypermart':'e.g. ABC Enterprises'}" value="${b.name||''}" />
+      <div class="err-msg">Required – must match PAN</div></div>
+
+    <div class="field"><label>Registered Office Address <span class="req">*</span>
+      <span class="hint">Full address including PIN code</span></label>
+      <textarea id="b-regaddr" rows="2" placeholder="e.g. Shop No 2, Karve Layout, Bangalore, Karnataka - 400019">${b.registeredAddress||''}</textarea>
+      <div class="err-msg">Required</div></div>
+
+    <div class="field"><label>Principal Place of Operation</label>
+      <div class="radio-group">
+        <label><input type="radio" name="principal-same" value="true" ${b.principalSame!==false?'checked':''} onchange="togglePrincipal()"> Same as Registered Address</label>
+        <label><input type="radio" name="principal-same" value="false" ${b.principalSame===false||b.principalSame==='false'?'checked':''} onchange="togglePrincipal()"> Different Address</label>
+      </div>
+    </div>
+    <div class="field hidden" id="principal-addr-field">
+      <label>Principal Office Address <span class="req">*</span></label>
+      <textarea id="b-principaladdr" rows="2" placeholder="Full address of principal place of operation">${b.principalAddress||''}</textarea>
+      <div class="err-msg">Required if different from registered address</div>
+    </div>
+
+    <div class="field"><label>City / Place <span class="req">*</span></label>
+      <input id="b-city" placeholder="e.g. Bangalore" value="${b.city||''}" />
+      <div class="err-msg">Required</div></div>
+
+    ${isPartnership ? `
+    <div class="section-title">Partnership Deed Details</div>
+    <div class="field-row">
+      <div class="field"><label>Partnership Deed Date <span class="req">*</span></label>
+        <input type="date" id="b-deeddate" value="${b.deedDate||''}" />
+        <div class="err-msg">Required</div></div>
+      <div class="field"><label>Firm Registration Type <span class="req">*</span></label>
+        <select id="b-firmtype">
+          <option value="">Select...</option>
+          <option value="Registered" ${b.firmType==='Registered'?'selected':''}>Registered</option>
+          <option value="Unregistered" ${b.firmType==='Unregistered'?'selected':''}>Unregistered</option>
+        </select>
+        <div class="err-msg">Required</div></div>
+    </div>
+    <div id="natural-persons-section" class="${b.firmType?'':'hidden'}">
+      <div class="field" id="np10-field" style="${b.firmType==='Registered'?'':'display:none'}">
+        <label>Natural persons with >10% ownership? <span class="req">*</span>
+          <span class="hint">Registered firm threshold</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="np10" value="Yes" ${b.naturalPersons10==='Yes'?'checked':''}> Yes</label>
+          <label><input type="radio" name="np10" value="No" ${b.naturalPersons10==='No'?'checked':''}> No</label>
+        </div>
+        <div class="err-msg" id="np10-err" style="display:none;color:var(--red);font-size:11px">Required</div>
+      </div>
+      <div class="field" id="np15-field" style="${b.firmType==='Unregistered'?'':'display:none'}">
+        <label>Natural persons with >15% ownership? <span class="req">*</span>
+          <span class="hint">Unregistered firm threshold</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="np15" value="Yes" ${b.naturalPersons15==='Yes'?'checked':''}> Yes</label>
+          <label><input type="radio" name="np15" value="No" ${b.naturalPersons15==='No'?'checked':''}> No</label>
+        </div>
+        <div class="err-msg" id="np15-err" style="display:none;color:var(--red);font-size:11px">Required</div>
+      </div>
+    </div>
+    <div class="field"><label>PEP Declaration <span class="req">*</span>
+      <span class="hint">Is any partner/officer a Politically Exposed Person?</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="pep" value="YES" ${b.pep==='YES'?'checked':''}> YES – PEP exists</label>
+        <label><input type="radio" name="pep" value="NO" ${b.pep==='NO'||!b.pep?'checked':''}> NO – No PEP</label>
+      </div>
+    </div>
+    ` : ''}
+
+    ${isProprietor ? `
+    <div class="field"><label>Entity Type <span class="req">*</span></label>
+      <select id="b-entitytype">
+        <option value="">Select...</option>
+        ${entityTypeOptions}
+      </select>
+      <div class="err-msg">Required</div></div>
+    <div class="field"><label>Nature of Business</label>
+      <div class="radio-group">
+        <label><input type="radio" name="nature" value="NA" ${!b.nature||b.nature==='NA'?'checked':''}> NA (Default)</label>
+        <label><input type="radio" name="nature" value="Government" ${b.nature==='Government'?'checked':''}> Government Organization</label>
+        <label><input type="radio" name="nature" value="NGO" ${b.nature==='NGO'?'checked':''}> NGO / Charitable</label>
+      </div>
+    </div>
+    ` : ''}
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(0)">← Back</button>
+      <button class="btn btn-primary" onclick="saveBusinessInfo()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function togglePrincipal() {
+  const same = radioVal('principal-same') !== 'false';
+  document.getElementById('principal-addr-field').classList.toggle('hidden', same);
+}
+
+// Call after render
+document.addEventListener('change', e => {
+  if (e.target.name === 'principal-same') togglePrincipal();
+  if (e.target.id === 'b-firmtype') {
+    const v = e.target.value;
+    document.getElementById('np10-field').style.display = v === 'Registered' ? '' : 'none';
+    document.getElementById('np15-field').style.display = v === 'Unregistered' ? '' : 'none';
+    document.getElementById('natural-persons-section').classList.remove('hidden');
+  }
+});
+
+function saveBusinessInfo() {
+  let ok = true;
+  const name = val('b-name'), addr = val('b-regaddr'), city = val('b-city');
+  if (!name) { fieldErr('b-name', 'Required – must match PAN'); ok = false; }
+  if (!addr) { fieldErr('b-regaddr', 'Required'); ok = false; }
+  if (!city) { fieldErr('b-city', 'Required'); ok = false; }
+
+  const principalSame = radioVal('principal-same') !== 'false';
+  if (!principalSame && !val('b-principaladdr')) { fieldErr('b-principaladdr', 'Required if different'); ok = false; }
+
+  if (merchantType === 'partnership') {
+    if (!val('b-deeddate')) { fieldErr('b-deeddate', 'Required'); ok = false; }
+    const ft = selVal('b-firmtype');
+    if (!ft) { fieldErr('b-firmtype', 'Required'); ok = false; }
+    else {
+      if (ft === 'Registered' && !radioVal('np10')) {
+        document.getElementById('np10-err').style.display = 'block'; ok = false;
+      }
+      if (ft === 'Unregistered' && !radioVal('np15')) {
+        document.getElementById('np15-err').style.display = 'block'; ok = false;
+      }
+    }
+  }
+  if (merchantType === 'proprietor' && !selVal('b-entitytype')) { fieldErr('b-entitytype', 'Required'); ok = false; }
+  if (!ok) return;
+
+  formData.business = {
+    name, registeredAddress: addr, city,
+    principalSame: principalSame,
+    principalAddress: principalSame ? addr : val('b-principaladdr'),
+    deedDate: val('b-deeddate') || undefined,
+    firmType: selVal('b-firmtype') || undefined,
+    naturalPersons10: radioVal('np10') || undefined,
+    naturalPersons15: radioVal('np15') || undefined,
+    pep: radioVal('pep') || 'NO',
+    entityType: selVal('b-entitytype') || (merchantType === 'company' ? 'Company' : undefined),
+    nature: radioVal('nature') || 'NA',
+  };
+  saveMerchant({ merchantType, formData });
+  renderStep(currentStep + 1);
+}
+
+// ─── Step: AS Details (Sole Proprietor only) ─────────────────────────────
+function renderASDetails() {
+  const as_ = formData.as || {};
+  return `
+  <div class="card">
+    <div class="card-title">📋 Authorised Signatory Details</div>
+    <div class="card-subtitle">Details of the person signing the Merchant Declaration Form</div>
+
+    <div class="info-box"><strong>💡 Tip</strong>The signatory name here must match the name on their PAN card and OVD submitted.</div>
+
+    <div class="field"><label>Signatory Name <span class="req">*</span>
+      <span class="hint">Must match name on PAN card</span></label>
+      <input id="as-name" placeholder="Full name as on PAN" value="${as_.name||''}" />
+      <div class="err-msg">Required</div></div>
+
+    <div class="field"><label>Designation <span class="req">*</span></label>
+      <select id="as-desig">
+        <option value="">Select...</option>
+        ${['Owner','Proprietor','Karta','Partner','Director','Managing Director','Authorised Signatory'].map(d =>
+          `<option value="${d}" ${as_.designation===d?'selected':''}>${d}</option>`).join('')}
+      </select>
+      <div class="err-msg">Required</div></div>
+
+    <div class="field-row">
+      <div class="field"><label>Mobile Number <span class="req">*</span>
+        <span class="hint">Registered with PhonePe</span></label>
+        <input id="as-mobile" placeholder="10-digit" maxlength="10" value="${as_.mobile||''}" />
+        <div class="err-msg">Enter valid 10-digit number</div></div>
+      <div class="field"><label>Email ID <span class="req">*</span>
+        <span class="hint">Registered with PhonePe</span></label>
+        <input id="as-email" placeholder="email@example.com" value="${as_.email||''}" />
+        <div class="err-msg">Enter valid email</div></div>
+    </div>
+
+    <div class="field"><label>Father's Name <span class="req">*</span></label>
+      <input id="as-father" placeholder="Father's full name" value="${as_.fatherName||''}" />
+      <div class="err-msg">Required</div></div>
+
+    <div class="field"><label>PAN Number <span class="req">*</span>
+      <span class="hint">Format: ABCDE1234F</span></label>
+      <input id="as-pan" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase"
+        value="${as_.pan||''}" oninput="this.value=this.value.toUpperCase()" />
+      <div class="err-msg">Invalid PAN format (e.g. ABCDE1234F)</div></div>
+
+    <div class="field"><label>Address Proof Type (OVD) <span class="req">*</span></label>
+      <div class="radio-group">
+        ${['Aadhaar','Driving License','Voter ID'].map(o =>
+          `<label><input type="radio" name="as-ovd" value="${o}" ${as_.ovdType===o?'checked':''}> ${o}</label>`).join('')}
+      </div>
+    </div>
+
+    <div class="section-title">Tax Registration</div>
+    <div class="has-toggle">
+      <label class="toggle-switch"><input type="checkbox" id="has-tan" ${as_.tan?'checked':''} onchange="document.getElementById('tan-field').classList.toggle('hidden',!this.checked)">
+      <span class="toggle-slider"></span></label>
+      <span style="font-size:13px;font-weight:600">Has TAN Number</span>
+    </div>
+    <div class="field ${as_.tan?'':'hidden'}" id="tan-field">
+      <label>TAN Number</label>
+      <input id="as-tan" placeholder="e.g. BLRP12345A" value="${as_.tan||''}" />
+    </div>
+
+    <div class="has-toggle" style="margin-top:12px">
+      <label class="toggle-switch"><input type="checkbox" id="has-gstin" ${as_.gstin?'checked':''} onchange="document.getElementById('gstin-field').classList.toggle('hidden',!this.checked)">
+      <span class="toggle-slider"></span></label>
+      <span style="font-size:13px;font-weight:600">Has GSTIN</span>
+    </div>
+    <div class="field ${as_.gstin?'':'hidden'}" id="gstin-field">
+      <label>GSTIN Number</label>
+      <input id="as-gstin" placeholder="e.g. 29AABCU9603R1ZX" maxlength="15" style="text-transform:uppercase"
+        value="${as_.gstin||''}" oninput="this.value=this.value.toUpperCase()" />
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(currentStep-1)">← Back</button>
+      <button class="btn btn-primary" onclick="saveASDetails()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function saveASDetails() {
+  let ok = true;
+  if (!val('as-name')) { fieldErr('as-name', 'Required'); ok = false; }
+  if (!selVal('as-desig')) { fieldErr('as-desig', 'Required'); ok = false; }
+  if (!validatePhone(val('as-mobile'))) { fieldErr('as-mobile', 'Enter valid 10-digit number'); ok = false; }
+  if (!validateEmail(val('as-email'))) { fieldErr('as-email', 'Enter valid email'); ok = false; }
+  if (!val('as-father')) { fieldErr('as-father', 'Required'); ok = false; }
+  if (!validatePAN(val('as-pan'))) { fieldErr('as-pan', 'Invalid PAN format'); ok = false; }
+  if (!radioVal('as-ovd')) { alert('Please select an OVD type'); ok = false; }
+  if (!ok) return;
+  formData.as = {
+    name: val('as-name'),
+    designation: selVal('as-desig'),
+    mobile: val('as-mobile'),
+    email: val('as-email'),
+    fatherName: val('as-father'),
+    pan: val('as-pan').toUpperCase(),
+    ovdType: radioVal('as-ovd'),
+    tan: checkboxVal('has-tan') ? val('as-tan') : '',
+    gstin: checkboxVal('has-gstin') ? val('as-gstin') : '',
+  };
+  saveMerchant({ merchantType, formData });
+  renderStep(currentStep + 1);
+}
+
+// ─── Step: Partners ───────────────────────────────────────────────────────
+let partnerList = [];
+
+function renderPartners() {
+  partnerList = formData.partners ? JSON.parse(JSON.stringify(formData.partners)) : [newPartner()];
+  return `
+  <div class="card">
+    <div class="card-title">👥 Partners</div>
+    <div class="card-subtitle">Add all partners as listed in the Partnership Deed</div>
+    <div class="info-box">
+      <strong>📋 Rules</strong>
+      • Total ownership must equal exactly 100%<br>
+      • Select one partner as the Authorised Signatory<br>
+      • PAN format: ABCDE1234F
+    </div>
+    <div id="partners-container"></div>
+    <button class="btn-add" onclick="addPartner()">+ Add Partner</button>
+    <div id="share-total" class="share-total bad">Total: 0% (must be 100%)</div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(currentStep-1)">← Back</button>
+      <button class="btn btn-primary" onclick="savePartners()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function newPartner() {
+  return { id: Date.now() + Math.random(), name:'', address:'', designation:'Partner', dob:'', pan:'', ovdType:'Aadhaar', aadhaarLast4:'', ovdNumber:'', nationality:'Indian', share:'', isAuth: false };
+}
+
+function bindPartners() {
+  renderPartnerCards();
+  updateShareTotal();
+}
+
+function renderPartnerCards() {
+  const cont = document.getElementById('partners-container');
+  if (!cont) return;
+  cont.innerHTML = partnerList.map((pp, i) => `
+    <div class="partner-card" id="pcard-${pp.id}">
+      <div class="partner-card-header">
+        <div class="partner-card-title">Partner ${i+1} ${pp.isAuth ? '<span class="auth-badge">Authorised Signatory</span>' : ''}</div>
+        ${partnerList.length > 1 ? `<button class="btn-remove" onclick="removePartner('${pp.id}')">✕</button>` : ''}
+      </div>
+      <div class="field"><label>Full Name <span class="req">*</span>
+        <span class="hint">As on PAN card</span></label>
+        <input id="pn-${pp.id}" placeholder="Full name" value="${pp.name}" oninput="updatePartnerField('${pp.id}','name',this.value)" />
+        <div class="err-msg">Required</div></div>
+      <div class="field"><label>Residential Address & PIN <span class="req">*</span></label>
+        <textarea id="pa-${pp.id}" rows="2" placeholder="Address with PIN code" oninput="updatePartnerField('${pp.id}','address',this.value)">${pp.address}</textarea>
+        <div class="err-msg">Required</div></div>
+      <div class="field-row">
+        <div class="field"><label>Designation</label>
+          <input id="pd-${pp.id}" placeholder="e.g. Partner, Managing Partner" value="${pp.designation||'Partner'}" oninput="updatePartnerField('${pp.id}','designation',this.value)" /></div>
+        <div class="field"><label>Date of Birth <span class="req">*</span></label>
+          <input type="date" id="pdob-${pp.id}" value="${pp.dob}" onchange="updatePartnerField('${pp.id}','dob',this.value)" />
+          <div class="err-msg">Required</div></div>
+      </div>
+      <div class="field"><label>PAN Number <span class="req">*</span></label>
+        <input id="ppan-${pp.id}" placeholder="ABCDE1234F" maxlength="10" value="${pp.pan}" style="text-transform:uppercase"
+          oninput="this.value=this.value.toUpperCase();updatePartnerField('${pp.id}','pan',this.value)" />
+        <div class="err-msg">Invalid PAN format</div></div>
+      <div class="field"><label>Address Proof (OVD) <span class="req">*</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="povd-${pp.id}" value="Aadhaar" ${pp.ovdType==='Aadhaar'?'checked':''} onchange="setOVDType('${pp.id}','Aadhaar')"> Aadhaar</label>
+          <label><input type="radio" name="povd-${pp.id}" value="Driving License" ${pp.ovdType==='Driving License'?'checked':''} onchange="setOVDType('${pp.id}','Driving License')"> Driving License</label>
+          <label><input type="radio" name="povd-${pp.id}" value="Voter ID" ${pp.ovdType==='Voter ID'?'checked':''} onchange="setOVDType('${pp.id}','Voter ID')"> Voter ID</label>
+        </div>
+      </div>
+      <div class="field" id="aadhaar-field-${pp.id}" style="${pp.ovdType==='Aadhaar'?'':'display:none'}">
+        <label>Aadhaar (Last 4 digits) <span class="req">*</span></label>
+        <div class="aadhaar-input">
+          <span class="aadhaar-prefix">XXXX XXXX</span>
+          <input id="paadh-${pp.id}" placeholder="1234" maxlength="4" pattern="[0-9]{4}" value="${pp.aadhaarLast4}"
+            oninput="updatePartnerField('${pp.id}','aadhaarLast4',this.value.replace(/\D/g,''))" style="flex:1" />
+        </div>
+        <div class="err-msg">Enter 4 digits</div></div>
+      <div class="field" id="ovd-num-field-${pp.id}" style="${pp.ovdType!=='Aadhaar'?'':'display:none'}">
+        <label>OVD Number <span class="req">*</span></label>
+        <input id="povdnum-${pp.id}" placeholder="Document number" value="${pp.ovdNumber||''}"
+          oninput="updatePartnerField('${pp.id}','ovdNumber',this.value)" />
+        <div class="err-msg">Required</div></div>
+      <div class="field-row">
+        <div class="field"><label>Nationality</label>
+          <input id="pnat-${pp.id}" value="${pp.nationality||'Indian'}" oninput="updatePartnerField('${pp.id}','nationality',this.value)" /></div>
+        <div class="field"><label>Ownership % <span class="req">*</span>
+          <span class="hint">Must total 100% across all partners</span></label>
+          <input id="pshare-${pp.id}" type="number" min="0" max="100" step="0.01" placeholder="e.g. 33.33" value="${pp.share}"
+            oninput="updatePartnerField('${pp.id}','share',this.value);updateShareTotal()" />
+          <div class="err-msg">Required</div></div>
+      </div>
+      <div class="field"><label>Set as Authorised Signatory?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="auth-sig" value="${pp.id}" ${pp.isAuth?'checked':''} onchange="setAuth('${pp.id}')"> ✓ Yes, this partner is the Authorised Signatory</label>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  updateShareTotal();
+}
+
+function updatePartnerField(id, field, value) {
+  const pp = partnerList.find(p => String(p.id) === String(id));
+  if (pp) pp[field] = value;
+}
+
+function setOVDType(id, type) {
+  updatePartnerField(id, 'ovdType', type);
+  document.getElementById(`aadhaar-field-${id}`).style.display = type === 'Aadhaar' ? '' : 'none';
+  document.getElementById(`ovd-num-field-${id}`).style.display = type !== 'Aadhaar' ? '' : 'none';
+}
+
+function setAuth(id) {
+  partnerList.forEach(pp => { pp.isAuth = String(pp.id) === String(id); });
+  renderPartnerCards();
+}
+
+function addPartner() { partnerList.push(newPartner()); renderPartnerCards(); }
+function removePartner(id) {
+  if (partnerList.length <= 1) return;
+  partnerList = partnerList.filter(p => String(p.id) !== String(id));
+  renderPartnerCards();
+}
+
+function updateShareTotal() {
+  const total = partnerList.reduce((s, p) => s + (parseFloat(p.share) || 0), 0);
+  const el = document.getElementById('share-total');
+  if (!el) return;
+  const ok = Math.abs(total - 100) < 0.01;
+  el.className = 'share-total ' + (ok ? 'ok' : 'bad');
+  el.textContent = `Total: ${total.toFixed(2)}% ${ok ? '✓ (100% – Perfect!)' : '(must be exactly 100%)'}`;
+}
+
+function savePartners() {
+  // Sync fields
+  partnerList.forEach(pp => {
+    const nameEl = document.getElementById(`pn-${pp.id}`);
+    if (nameEl) pp.name = nameEl.value.trim();
+    const addrEl = document.getElementById(`pa-${pp.id}`);
+    if (addrEl) pp.address = addrEl.value.trim();
+    const shareEl = document.getElementById(`pshare-${pp.id}`);
+    if (shareEl) pp.share = shareEl.value;
+  });
+
+  let ok = true;
+  for (const pp of partnerList) {
+    if (!pp.name) { alert(`Partner name missing for partner ${partnerList.indexOf(pp)+1}`); ok = false; break; }
+    if (!pp.address) { alert(`Address missing for ${pp.name}`); ok = false; break; }
+    if (!pp.dob) { alert(`Date of birth missing for ${pp.name}`); ok = false; break; }
+    if (!validatePAN(pp.pan)) { alert(`Invalid PAN for ${pp.name || 'a partner'} (format: ABCDE1234F)`); ok = false; break; }
+    if (pp.ovdType === 'Aadhaar' && pp.aadhaarLast4.length !== 4) { alert(`Enter 4-digit Aadhaar suffix for ${pp.name}`); ok = false; break; }
+    if (pp.ovdType !== 'Aadhaar' && !pp.ovdNumber) { alert(`OVD number missing for ${pp.name}`); ok = false; break; }
+    if (!pp.share) { alert(`Ownership % missing for ${pp.name}`); ok = false; break; }
+  }
+  if (!ok) return;
+
+  const total = partnerList.reduce((s, p) => s + (parseFloat(p.share) || 0), 0);
+  if (Math.abs(total - 100) > 0.01) { alert(`Total ownership is ${total.toFixed(2)}%. Must be exactly 100%.`); return; }
+
+  const hasAuth = partnerList.some(p => p.isAuth);
+  if (!hasAuth) { alert('Please select one partner as the Authorised Signatory.'); return; }
+
+  formData.partners = partnerList;
+  saveMerchant({ merchantType, formData });
+  renderStep(currentStep + 1);
+}
+
+// ─── Step: Resolution ─────────────────────────────────────────────────────
+function renderResolution() {
+  const res = formData.resolution || {};
+  const partners = formData.partners || [];
+  const presentIds = res.presentIds || [];
+  return `
+  <div class="card">
+    <div class="card-title">📝 Partner Resolution</div>
+    <div class="card-subtitle">Meeting details for the Partner Resolution document</div>
+    <div class="info-box">
+      <strong>📋 Rules</strong>
+      • Partners present must have combined share > 50%<br>
+      • The Authorised Signatory must be present<br>
+      • Date will be linked to BO Declaration
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Meeting Date <span class="req">*</span></label>
+        <input type="date" id="res-date" value="${res.date||''}" />
+        <div class="err-msg">Required</div></div>
+      <div class="field"><label>Meeting Time <span class="req">*</span></label>
+        <input id="res-time" placeholder="e.g. 9:30 AM" value="${res.time||''}" />
+        <div class="err-msg">Required</div></div>
+    </div>
+    <div class="field"><label>Partners Present at the Meeting <span class="req">*</span>
+      <span class="hint">Select all partners who were physically present. Combined share must exceed 50%.</span></label>
+      <div id="present-partners">
+        ${partners.map(pp => `
+          <label class="present-partner-item">
+            <input type="checkbox" value="${pp.id}" ${presentIds.includes(String(pp.id))||presentIds.includes(pp.id)?'checked':''} onchange="updatePresentShare()">
+            <span class="pname">${pp.name || '(unnamed)'} ${pp.isAuth?'<span class="auth-badge">AS</span>':''}</span>
+            <span class="pshare">${pp.share}%</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+    <div id="present-share-info" class="share-total bad">Present share: 0% (must be > 50%)</div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(currentStep-1)">← Back</button>
+      <button class="btn btn-primary" onclick="saveResolution()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function bindResolution() { updatePresentShare(); }
+
+function updatePresentShare() {
+  const partners = formData.partners || [];
+  const checked = [...document.querySelectorAll('#present-partners input:checked')].map(e => e.value);
+  const total = partners.filter(p => checked.includes(String(p.id))).reduce((s, p) => s + (parseFloat(p.share)||0), 0);
+  const el = document.getElementById('present-share-info');
+  if (!el) return;
+  const ok = total > 50;
+  el.className = 'share-total ' + (ok ? 'ok' : 'bad');
+  el.textContent = `Present combined share: ${total.toFixed(2)}% ${ok ? '✓ (> 50%)' : '(must exceed 50%)'}`;
+}
+
+function saveResolution() {
+  const date = val('res-date'), time = val('res-time');
+  if (!date) { fieldErr('res-date', 'Required'); return; }
+  if (!time) { fieldErr('res-time', 'Required'); return; }
+  const presentIds = [...document.querySelectorAll('#present-partners input:checked')].map(e => e.value);
+  if (presentIds.length === 0) { alert('Select at least one partner present at the meeting.'); return; }
+  const partners = formData.partners || [];
+  const total = partners.filter(p => presentIds.includes(String(p.id))).reduce((s, p) => s + (parseFloat(p.share)||0), 0);
+  if (total <= 50) { alert(`Present partners' combined share is ${total.toFixed(2)}%. Must be > 50%.`); return; }
+  const authPartner = partners.find(p => p.isAuth);
+  if (authPartner && !presentIds.includes(String(authPartner.id))) {
+    if (!confirm(`The Authorised Signatory (${authPartner.name}) is not selected as present. Are you sure?`)) return;
+  }
+  formData.resolution = { date, time, presentIds };
+  saveMerchant({ merchantType, formData });
+  renderStep(currentStep + 1);
+}
+
+// ─── Step: Partnership BO Declaration ─────────────────────────────────────
+function renderBODeclaration() {
+  const bo = formData.boDeclaration || {};
+  const resDate = formData.resolution?.date || '';
+  return `
+  <div class="card">
+    <div class="card-title">📜 BO Declaration</div>
+    <div class="card-subtitle">Beneficial Ownership declaration for the Partnership Firm</div>
+    <div class="info-box"><strong>📋 Note</strong>The BO Declaration date must match the Resolution date (auto-filled).</div>
+    <div class="field"><label>Declaration Date <span class="req">*</span>
+      <span class="hint">Must match Resolution date</span></label>
+      <input type="date" id="bo-date" value="${resDate}" readonly style="background:#f5f5f5" />
+    </div>
+    <div class="field"><label>BO Category <span class="req">*</span></label>
+      <div class="info-box" style="margin-bottom:10px">
+        <strong>Which category applies?</strong>
+        Category 1: There ARE partners with >10% (Registered) or >15% (Unregistered) ownership — list them in BO table<br>
+        Category 2: NO individual meets the threshold — authorised signatory is the BO
+      </div>
+      <div class="radio-group">
+        <label><input type="radio" name="bo-cat" value="1" ${bo.category==='1'||!bo.category?'checked':''}> Category 1 – Partners above threshold exist</label>
+        <label><input type="radio" name="bo-cat" value="2" ${bo.category==='2'?'checked':''}> Category 2 – No individual above threshold</label>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(currentStep-1)">← Back</button>
+      <button class="btn btn-primary" onclick="saveBODeclaration()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function saveBODeclaration() {
+  const cat = radioVal('bo-cat');
+  if (!cat) { alert('Select a BO category.'); return; }
+  formData.boDeclaration = { date: formData.resolution?.date || '', category: cat };
+  saveMerchant({ merchantType, formData });
+  renderStep(currentStep + 1);
+}
+
+// ─── Step: Directors / BO (Company) ──────────────────────────────────────
+let directorList = [];
+
+function renderDirectors() {
+  directorList = formData.directors ? JSON.parse(JSON.stringify(formData.directors)) : [newDirector()];
+  return `
+  <div class="card">
+    <div class="card-title">👔 Directors / Beneficial Owners</div>
+    <div class="card-subtitle">Add all directors/BOs with >10% ownership in the company</div>
+    <div class="info-box"><strong>📋 Rule</strong>Category 1 requires listing all persons with >10% interest or control.</div>
+    <div id="directors-container"></div>
+    <button class="btn-add" onclick="addDirector()">+ Add Director / BO</button>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(currentStep-1)">← Back</button>
+      <button class="btn btn-primary" onclick="saveDirectors()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function newDirector() {
+  return { id: Date.now() + Math.random(), name:'', address:'', designation:'Director', dob:'', pan:'', ovdType:'Aadhaar', aadhaarLast4:'', ovdNumber:'', nationality:'Indian', share:'' };
+}
+
+function bindDirectors() { renderDirectorCards(); }
+
+function renderDirectorCards() {
+  const cont = document.getElementById('directors-container');
+  if (!cont) return;
+  cont.innerHTML = directorList.map((dir, i) => `
+    <div class="partner-card" id="dcard-${dir.id}">
+      <div class="partner-card-header">
+        <div class="partner-card-title">Director / BO ${i+1}</div>
+        ${directorList.length > 1 ? `<button class="btn-remove" onclick="removeDirector('${dir.id}')">✕</button>` : ''}
+      </div>
+      <div class="field"><label>Full Name <span class="req">*</span></label>
+        <input id="dn-${dir.id}" placeholder="Full name" value="${dir.name}" oninput="updateDirectorField('${dir.id}','name',this.value)" />
+        <div class="err-msg">Required</div></div>
+      <div class="field"><label>Residential Address & PIN <span class="req">*</span></label>
+        <textarea id="da-${dir.id}" rows="2" placeholder="Address with PIN code" oninput="updateDirectorField('${dir.id}','address',this.value)">${dir.address}</textarea>
+        <div class="err-msg">Required</div></div>
+      <div class="field-row">
+        <div class="field"><label>Designation <span class="req">*</span></label>
+          <input id="dd-${dir.id}" placeholder="e.g. Director" value="${dir.designation||'Director'}" oninput="updateDirectorField('${dir.id}','designation',this.value)" /></div>
+        <div class="field"><label>Date of Birth <span class="req">*</span></label>
+          <input type="date" id="ddob-${dir.id}" value="${dir.dob}" onchange="updateDirectorField('${dir.id}','dob',this.value)" />
+          <div class="err-msg">Required</div></div>
+      </div>
+      <div class="field"><label>PAN Number <span class="req">*</span></label>
+        <input id="dpan-${dir.id}" placeholder="ABCDE1234F" maxlength="10" value="${dir.pan}" style="text-transform:uppercase"
+          oninput="this.value=this.value.toUpperCase();updateDirectorField('${dir.id}','pan',this.value)" />
+        <div class="err-msg">Invalid PAN format</div></div>
+      <div class="field"><label>Address Proof (OVD) <span class="req">*</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="dovd-${dir.id}" value="Aadhaar" ${dir.ovdType==='Aadhaar'?'checked':''} onchange="setDirOVDType('${dir.id}','Aadhaar')"> Aadhaar</label>
+          <label><input type="radio" name="dovd-${dir.id}" value="Driving License" ${dir.ovdType==='Driving License'?'checked':''} onchange="setDirOVDType('${dir.id}','Driving License')"> Driving License</label>
+          <label><input type="radio" name="dovd-${dir.id}" value="Voter ID" ${dir.ovdType==='Voter ID'?'checked':''} onchange="setDirOVDType('${dir.id}','Voter ID')"> Voter ID</label>
+        </div>
+      </div>
+      <div id="d-aadhaar-field-${dir.id}" style="${dir.ovdType==='Aadhaar'?'':'display:none'}">
+        <div class="field"><label>Aadhaar (Last 4 digits) <span class="req">*</span></label>
+          <div class="aadhaar-input">
+            <span class="aadhaar-prefix">XXXX XXXX</span>
+            <input id="daadh-${dir.id}" placeholder="1234" maxlength="4" value="${dir.aadhaarLast4}"
+              oninput="updateDirectorField('${dir.id}','aadhaarLast4',this.value.replace(/\D/g,''))" style="flex:1" />
+          </div></div>
+      </div>
+      <div id="d-ovdnum-field-${dir.id}" style="${dir.ovdType!=='Aadhaar'?'':'display:none'}">
+        <div class="field"><label>OVD Number <span class="req">*</span></label>
+          <input id="dovdnum-${dir.id}" placeholder="Document number" value="${dir.ovdNumber||''}"
+            oninput="updateDirectorField('${dir.id}','ovdNumber',this.value)" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Nationality</label>
+          <input id="dnat-${dir.id}" value="${dir.nationality||'Indian'}" oninput="updateDirectorField('${dir.id}','nationality',this.value)" /></div>
+        <div class="field"><label>% Ownership / Interest <span class="req">*</span></label>
+          <input id="dshare-${dir.id}" type="number" min="0" max="100" step="0.01" placeholder="e.g. 30" value="${dir.share}"
+            oninput="updateDirectorField('${dir.id}','share',this.value)" /></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateDirectorField(id, field, value) {
+  const dir = directorList.find(d => String(d.id) === String(id));
+  if (dir) dir[field] = value;
+}
+function setDirOVDType(id, type) {
+  updateDirectorField(id, 'ovdType', type);
+  document.getElementById(`d-aadhaar-field-${id}`).style.display = type === 'Aadhaar' ? '' : 'none';
+  document.getElementById(`d-ovdnum-field-${id}`).style.display = type !== 'Aadhaar' ? '' : 'none';
+}
+function addDirector() { directorList.push(newDirector()); renderDirectorCards(); }
+function removeDirector(id) {
+  if (directorList.length <= 1) return;
+  directorList = directorList.filter(d => String(d.id) !== String(id));
+  renderDirectorCards();
+}
+
+function saveDirectors() {
+  // Sync
+  directorList.forEach(dir => {
+    const n = document.getElementById(`dn-${dir.id}`); if (n) dir.name = n.value.trim();
+    const a = document.getElementById(`da-${dir.id}`); if (a) dir.address = a.value.trim();
+    const sh = document.getElementById(`dshare-${dir.id}`); if (sh) dir.share = sh.value;
+  });
+  for (const dir of directorList) {
+    if (!dir.name) { alert('Name missing for a director/BO'); return; }
+    if (!dir.address) { alert(`Address missing for ${dir.name}`); return; }
+    if (!dir.dob) { alert(`DOB missing for ${dir.name}`); return; }
+    if (!validatePAN(dir.pan)) { alert(`Invalid PAN for ${dir.name}`); return; }
+    if (dir.ovdType === 'Aadhaar' && dir.aadhaarLast4.length !== 4) { alert(`Enter 4-digit Aadhaar suffix for ${dir.name}`); return; }
+    if (dir.ovdType !== 'Aadhaar' && !dir.ovdNumber) { alert(`OVD number missing for ${dir.name}`); return; }
+  }
+  formData.directors = directorList;
+  saveMerchant({ merchantType, formData });
+  renderStep(currentStep + 1);
+}
+
+// ─── Step: Company BO Declaration ─────────────────────────────────────────
+let seniorMgmtList = [];
+
+function renderCompanyBO() {
+  const bo = formData.companyBO || {};
+  seniorMgmtList = bo.seniorMgmt ? JSON.parse(JSON.stringify(bo.seniorMgmt)) : [{ name:'', designation:'' }];
+  return `
+  <div class="card">
+    <div class="card-title">📜 Company BO Declaration</div>
+    <div class="card-subtitle">Beneficial Ownership declaration for Private Limited Company</div>
+
+    <div class="field"><label>Declaration Date <span class="req">*</span></label>
+      <input type="date" id="cbo-date" value="${bo.date||''}" />
+      <div class="err-msg">Required</div></div>
+
+    <div class="section-title">A. Stock Exchange Listing (Section V)</div>
+    <div class="info-box">
+      <strong>Select the applicable option as per the company's listing status</strong>
+      For most Private Limited companies, select Option B (not listed).
+    </div>
+    <div class="field"><label>Listing Type <span class="req">*</span></label>
+      <div style="display:flex;flex-direction:column;gap:8px" id="listing-options">
+        <label class="present-partner-item">
+          <input type="radio" name="listing" value="i" ${bo.listingType==='i'?'checked':''} onchange="toggleListingFields()">
+          <span>i. Entity listed on a stock exchange in India</span>
+        </label>
+        <label class="present-partner-item">
+          <input type="radio" name="listing" value="ii" ${bo.listingType==='ii'?'checked':''} onchange="toggleListingFields()">
+          <span>ii. Entity resident in jurisdictions notified by Central Government, listed on foreign exchanges</span>
+        </label>
+        <label class="present-partner-item">
+          <input type="radio" name="listing" value="iii" ${bo.listingType==='iii'?'checked':''} onchange="toggleListingFields()">
+          <span>iii. Subsidiary of such listed entities (i & ii)</span>
+        </label>
+        <label class="present-partner-item">
+          <input type="radio" name="listing" value="B" ${bo.listingType==='B'||!bo.listingType?'checked':''} onchange="toggleListingFields()">
+          <span>B. None of the above – Share beneficial owner details below (typical for Pvt Ltd)</span>
+        </label>
+      </div>
+    </div>
+    <div class="field hidden" id="stock-ex-i-field">
+      <label>Stock Exchange Name (Option i)</label>
+      <input id="cbo-sex1" placeholder="e.g. NSE, BSE" value="${bo.stockExchangeName||''}" />
+    </div>
+    <div class="field hidden" id="stock-ex-ii-field">
+      <label>Stock Exchange Name (Option ii)</label>
+      <input id="cbo-sex2" placeholder="e.g. NYSE, LSE" value="${bo.stockExchangeName2||''}" />
+    </div>
+
+    <div class="section-title">BO Category</div>
+    <div class="field"><label>Select Category <span class="req">*</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="cbo-cat" value="1" ${bo.category==='1'||!bo.category?'checked':''}> Category 1 – Directors/entities with >10% ownership listed above</label>
+        <label><input type="radio" name="cbo-cat" value="2" ${bo.category==='2'?'checked':''}> Category 2 – No individual meets >10% threshold</label>
+      </div>
+    </div>
+
+    <div class="section-title">B. Senior Management Officials</div>
+    <div id="mgmt-container"></div>
+    <button class="btn-add" onclick="addMgmt()" style="margin-bottom:12px">+ Add Senior Management Official</button>
+
+    <div class="section-title">C. PEP Declaration</div>
+    <div class="field"><label>PEP Status <span class="req">*</span>
+      <span class="hint">Is any personnel/director/officer a Politically Exposed Person?</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="cbo-pep" value="YES" ${bo.pep==='YES'?'checked':''}> YES – PEP exists</label>
+        <label><input type="radio" name="cbo-pep" value="NO" ${bo.pep==='NO'||!bo.pep?'checked':''}> NO – No PEP</label>
+      </div>
+    </div>
+
+    <div class="field"><label>Authorised Signatory Name <span class="req">*</span>
+      <span class="hint">Person who signs this BO declaration (CS or authorised signatory)</span></label>
+      <input id="cbo-authname" placeholder="Full name" value="${bo.authSignatoryName||''}" />
+      <div class="err-msg">Required</div></div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(currentStep-1)">← Back</button>
+      <button class="btn btn-primary" onclick="saveCompanyBO()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function bindCompanyBO() {
+  renderMgmtCards();
+  toggleListingFields();
+}
+
+function toggleListingFields() {
+  const v = radioVal('listing');
+  document.getElementById('stock-ex-i-field').classList.toggle('hidden', v !== 'i');
+  document.getElementById('stock-ex-ii-field').classList.toggle('hidden', v !== 'ii');
+}
+
+function renderMgmtCards() {
+  const cont = document.getElementById('mgmt-container');
+  if (!cont) return;
+  cont.innerHTML = seniorMgmtList.map((m, i) => `
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+      <input placeholder="Name" value="${m.name}" oninput="seniorMgmtList[${i}].name=this.value" style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:14px" />
+      <input placeholder="Designation" value="${m.designation}" oninput="seniorMgmtList[${i}].designation=this.value" style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:14px" />
+      ${seniorMgmtList.length > 1 ? `<button class="btn-remove" onclick="removeMgmt(${i})" style="font-size:18px">✕</button>` : ''}
+    </div>
+  `).join('');
+}
+function addMgmt() { seniorMgmtList.push({ name:'', designation:'' }); renderMgmtCards(); }
+function removeMgmt(i) { seniorMgmtList.splice(i, 1); renderMgmtCards(); }
+
+function saveCompanyBO() {
+  const date = val('cbo-date');
+  if (!date) { fieldErr('cbo-date', 'Required'); return; }
+  const listing = radioVal('listing');
+  if (!listing) { alert('Select a listing type'); return; }
+  const cat = radioVal('cbo-cat');
+  const pep = radioVal('cbo-pep');
+  const authName = val('cbo-authname');
+  if (!authName) { fieldErr('cbo-authname', 'Required'); return; }
+  formData.companyBO = {
+    date,
+    listingType: listing,
+    stockExchangeName: val('cbo-sex1'),
+    stockExchangeName2: val('cbo-sex2'),
+    category: cat || '1',
+    seniorMgmt: seniorMgmtList.filter(m => m.name),
+    pep: pep || 'NO',
+    authSignatoryName: authName
+  };
+  saveMerchant({ merchantType, formData });
+  renderStep(currentStep + 1);
+}
+
+// ─── Step: Letterhead ─────────────────────────────────────────────────────
+function renderLetterhead() {
+  const lh = formData.lh || {};
+  return `
+  <div class="card">
+    <div class="card-title">🏷️ Letterhead Details</div>
+    <div class="card-subtitle">These details appear in the Word document header (if filled)</div>
+    <div class="info-box"><strong>Optional</strong>If left blank, the document will say "print on letterhead" instead. Fill this only if the firm's letterhead details are to be pre-printed in the document.</div>
+    <div class="field"><label>Firm / Company Name on Letterhead
+      <span class="hint">Leave blank to skip letterhead in document header</span></label>
+      <input id="lh-name" placeholder="e.g. XYZ Hypermart" value="${lh.name||''}" /></div>
+    <div class="field"><label>Address</label>
+      <input id="lh-address" placeholder="Regd Office address" value="${lh.address||''}" /></div>
+    <div class="field-row">
+      <div class="field"><label>Phone</label>
+        <input id="lh-phone" placeholder="e.g. 080-6910XXXXX" value="${lh.phone||''}" /></div>
+      <div class="field"><label>Email</label>
+        <input id="lh-email" placeholder="info@firm.com" value="${lh.email||''}" /></div>
+    </div>
+    <div class="field"><label>Website</label>
+      <input id="lh-website" placeholder="www.firm.com" value="${lh.website||''}" /></div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(currentStep-1)">← Back</button>
+      <button class="btn btn-primary" onclick="saveLetterhead()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function saveLetterhead() {
+  formData.lh = {
+    name: val('lh-name'),
+    address: val('lh-address'),
+    phone: val('lh-phone'),
+    email: val('lh-email'),
+    website: val('lh-website')
+  };
+  saveMerchant({ merchantType, formData });
+  renderStep(currentStep + 1);
+}
+
+// ─── Step: Review & Download ───────────────────────────────────────────────
+function renderReview() {
+  const { business: b, as: as_, partners, resolution: res, boDeclaration: bo, directors, companyBO, lh } = formData;
+  const typeLabel = { proprietor:'Sole Proprietor', partnership:'Partnership Firm', company:'Private Limited Company' }[merchantType];
+
+  let docsHtml = '';
+  if (merchantType === 'proprietor') {
+    docsHtml = `
+      <div class="download-card">
+        <div class="doc-name">📄 Merchant Declaration Form (MDF)</div>
+        <div class="doc-desc">Authorised signatory declaration for ${b?.name}</div>
+        <button class="btn btn-success" onclick="downloadDoc('mdf')">⬇ Download MDF</button>
+        <span id="dl-mdf-status" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+      </div>`;
+  } else if (merchantType === 'partnership') {
+    docsHtml = `
+      <div class="download-card">
+        <div class="doc-name">📄 Partner Resolution</div>
+        <div class="doc-desc">Resolution authorising ${partners?.find(p=>p.isAuth)?.name} to act on behalf of ${b?.name}</div>
+        <button class="btn btn-success" onclick="downloadDoc('resolution')">⬇ Download Resolution</button>
+        <span id="dl-resolution-status" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+      </div>
+      <div class="download-card">
+        <div class="doc-name">📄 Partnership BO Declaration</div>
+        <div class="doc-desc">Beneficial Ownership declaration for ${b?.name}</div>
+        <button class="btn btn-success" onclick="downloadDoc('partnership-bo')">⬇ Download BO Declaration</button>
+        <span id="dl-partnership-bo-status" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+      </div>`;
+  } else if (merchantType === 'company') {
+    docsHtml = `
+      <div class="download-card">
+        <div class="doc-name">📄 Company BO Declaration</div>
+        <div class="doc-desc">Beneficial Ownership declaration for ${b?.name}</div>
+        <button class="btn btn-success" onclick="downloadDoc('company-bo')">⬇ Download BO Declaration</button>
+        <span id="dl-company-bo-status" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+      </div>`;
+  }
+
+  const row = (l, v) => v ? `<div class="review-row"><div class="rl">${l}</div><div class="rv">${v}</div></div>` : '';
+
+  return `
+  <div class="card">
+    <div class="card-title">✅ Review & Download</div>
+    <div class="card-subtitle">Confirm the details below before downloading</div>
+
+    <div class="review-section">
+      <div class="section-title">Merchant Info</div>
+      ${row('Type', typeLabel)}
+      ${row('Name', b?.name)}
+      ${row('Registered Address', b?.registeredAddress)}
+      ${row('Principal Office', b?.principalSame ? 'Same as registered' : b?.principalAddress)}
+      ${b?.firmType ? row('Firm Type', b.firmType) : ''}
+      ${b?.deedDate ? row('Deed Date', b.deedDate) : ''}
+    </div>
+
+    ${as_ ? `
+    <div class="review-section">
+      <div class="section-title">Authorised Signatory</div>
+      ${row('Name', as_.name)}
+      ${row('Designation', as_.designation)}
+      ${row('Mobile', as_.mobile)}
+      ${row('Email', as_.email)}
+      ${row('PAN', as_.pan)}
+      ${row('OVD Type', as_.ovdType)}
+    </div>` : ''}
+
+    ${partners?.length ? `
+    <div class="review-section">
+      <div class="section-title">Partners (${partners.length})</div>
+      ${partners.map(pp => `
+        <div class="review-row">
+          <div class="rl">${pp.name} ${pp.isAuth?'<span class="auth-badge">AS</span>':''}</div>
+          <div class="rv">${pp.share}% | ${pp.pan}</div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${res ? `
+    <div class="review-section">
+      <div class="section-title">Resolution</div>
+      ${row('Date', res.date)}
+      ${row('Time', res.time)}
+      ${row('Partners Present', (formData.partners||[]).filter(p=>res.presentIds.includes(String(p.id))).map(p=>p.name).join(', '))}
+    </div>` : ''}
+
+    ${directors?.length ? `
+    <div class="review-section">
+      <div class="section-title">Directors / BOs (${directors.length})</div>
+      ${directors.map(d => `<div class="review-row"><div class="rl">${d.name}</div><div class="rv">${d.share}% | ${d.designation} | ${d.pan}</div></div>`).join('')}
+    </div>` : ''}
+
+    ${lh?.name ? `
+    <div class="review-section">
+      <div class="section-title">Letterhead</div>
+      ${row('Name', lh.name)}
+      ${row('Address', lh.address)}
+    </div>` : ''}
+
+    <div class="section-title">Download Documents</div>
+    ${docsHtml}
+
+    <div class="warn-box" style="margin-top:16px">
+      ⚠️ After downloading: Print on firm's letterhead, get signatures from all present partners, affix firm seal. DON'T use whitener.
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="renderStep(currentStep-1)">← Back</button>
+      <button class="btn btn-secondary" onclick="clearMerchantStart()" style="border-color:var(--red);color:var(--red)">🗑 New Merchant</button>
+    </div>
+  </div>`;
+}
+
+async function downloadDoc(type) {
+  const statusEl = document.getElementById(`dl-${type}-status`);
+  if (statusEl) statusEl.innerHTML = '<span class="loading"><span class="spinner"></span> Generating...</span>';
+
+  const payload = buildPayload();
+
+  try {
+    const res = await fetch(`/api/generate/${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Server error');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const cd = res.headers.get('Content-Disposition') || '';
+    const filename = cd.match(/filename="(.+?)"/)?.[1] || `document_${type}.docx`;
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+    if (statusEl) statusEl.textContent = '✓ Downloaded!';
+    logUsage(type);
+  } catch (e) {
+    if (statusEl) statusEl.textContent = '✗ Error: ' + e.message;
+    alert('Download failed: ' + e.message);
+  }
+}
+
+function buildPayload() {
+  return {
+    business: formData.business,
+    as: formData.as,
+    partners: formData.partners,
+    resolution: formData.resolution,
+    boDeclaration: formData.boDeclaration,
+    directors: formData.directors,
+    companyBO: formData.companyBO,
+    lh: formData.lh
+  };
+}
+
+async function logUsage(docType) {
+  const url = agent?.sheetsUrl || SHEETS_URL;
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        merchantName: formData.business?.name || '',
+        merchantType,
+        docType,
+        agentName: agent?.name || '',
+        agentPhone: agent?.phone || '',
+        cm: agent?.cm || '',
+        state: agent?.state || '',
+        timestamp: new Date().toISOString()
+      })
+    });
+  } catch {}
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
