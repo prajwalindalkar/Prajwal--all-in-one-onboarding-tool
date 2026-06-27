@@ -166,24 +166,38 @@ function generateMDF(d) {
             cell([p([t('Tick (as applicable', { italics: true })])])
           ]
         }),
-        new TableRow({
-          children: [
-            cell([p([
-              t('1. The Merchant is registered under Income Tax Act, 1961 and has obtained TAN Number '),
-              u(as_.tan || '__________'), t(' against the registration. '), t('OR', { bold: true })
-            ]), p([t('The Merchant does not hold TAN as it is not liable to deduct tax at source.  '), chk(!as_.tan)])]),
-            cell([p([t('Tick (if applicable', { italics: true })])])
-          ]
-        }),
-        new TableRow({
-          children: [
-            cell([p([
-              t('2. The Merchant is registered and a GSTIN certificate/acknowledgement having provisional number '),
-              u(as_.gstin || '__________'), t(' is issued by GST authorities. '), t('OR', { bold: true })
-            ]), p([t('The Merchant does not have any registration with GST authorities.  '), chk(!as_.gstin)])]),
-            cell([p([t('Tick (if applicable', { italics: true })])])
-          ]
-        }),
+       new TableRow({
+  children: [
+    cell([p([
+      t('1. The Merchant is registered under Income Tax Act, 1961 (as may be amended from time to time) and has obtained TAN Number '),
+      u(as_.tan || '__________________________'), t(' against the registration. '), t('OR', { bold: true })
+    ])]),
+    cell([p([t(as_.tan ? 'Tick (if applicable' : '', { italics: true })])])
+  ]
+}),
+new TableRow({
+  children: [
+    cell([p([
+      t('The Merchant does not hold TAN as it is not liable to deduct tax at source or collect tax at source as per the provisions of Income Tax Act, 1961.')
+    ])]),
+    cell([p([chk(!as_.tan)])])
+  ]
+}),
+new TableRow({
+  children: [
+    cell([p([
+      t('2. The Merchant is registered and a GSTIN certificate/acknowledgement having provisional number '),
+      u(as_.gstin || '__________________________'), t(' is issued by GST authorities. '), t('OR', { bold: true })
+    ])]),
+    cell([p([t(as_.gstin ? 'Tick (if applicable' : '', { italics: true })])])
+  ]
+}),
+new TableRow({
+  children: [
+    cell([p([t('The Merchant does not have any registration with GST authorities.')])]),
+    cell([p([chk(!as_.gstin)])])
+  ]
+}),
         new TableRow({
           children: [
             cell([p([t('The entity is working in the nature of:')]),
